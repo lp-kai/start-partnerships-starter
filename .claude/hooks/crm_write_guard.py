@@ -1,11 +1,21 @@
-"""PreToolUse(Bash): blocks CRM writes (POST/PUT/PATCH/DELETE) from ad-hoc commands. Only scripts/crm_claim.py may write, when enabled."""
+"""PreToolUse(Bash): blocks CRM writes from ad-hoc commands, per shell segment, case-insensitive.
+Exemption only for an exact call of scripts/crm_claim.py. Fails CLOSED."""
 import re, sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent)); from _hook import read, command, block, run
+sys.path.insert(0, str(Path(__file__).resolve().parent)); from _hook import read, command, block, run_closed
+
+EXEMPT = re.compile(r'^\s*(python[0-9.]*|py(\s+-3)?)\s+(\S*/)?scripts/crm_claim\.py\b')
+CRM = re.compile(r'espo\.|/api/v1/|X-Api-Key|ESPO_API_KEY|espocrm', re.I)
+WRITE = re.compile(r'-X\s*(POST|PUT|PATCH|DELETE)\b|--request\s+(POST|PUT|PATCH|DELETE)\b|method\s*=\s*["\'](POST|PUT|PATCH|DELETE)["\']|\.(post|put|patch|delete)\s*\(|--data(-raw|-binary)?\b|(^|\s)-d\s|\bDELETE\b', re.I)
+
+
 def main():
-    c = command(read())
-    if not c or 'crm_claim.py' in c: return 0
-    if re.search(r'espo\.|/api/v1/|X-Api-Key|ESPO_API_KEY', c) and re.search(r'-X\s*(POST|PUT|PATCH|DELETE)|method\s*=\s*["\'](POST|PUT|PATCH|DELETE)|\.(post|put|patch|delete)\(|--data\b|\s-d\s', c):
-        return block('CRM WRITE GUARD: no POST/PUT/PATCH/DELETE to the CRM from ad-hoc commands. Rule 2: never delete; writes only via the approved claim script.')
+    for seg in re.split(r'[;&|]+|\n', command(read())):
+        s = seg.strip()
+        if not s or EXEMPT.match(s): continue
+        if CRM.search(s) and WRITE.search(s):
+            return block('CRM WRITE GUARD: no POST/PUT/PATCH/DELETE to the CRM from ad-hoc commands. Rule 2: never delete; the only write path is scripts/crm_claim.py (when enabled).')
     return 0
-run(main)
+
+
+run_closed(main)

@@ -4,6 +4,7 @@
 *.env
 !.env.example
 me.json
+me.json.*
 data/
 drafts/
 state/

@@ -8,7 +8,7 @@ Facts come from facts.json at the repo root (versioned, see docs/FACTS_UPDATE.md
 
 Aufruf:
     py -3 scripts/draft_lint.py drafts/<datei>.md [weitere ...]
-    py -3 scripts/draft_lint.py --text "Hey Aqib, ..."     (roher Mailtext, z.B. aus gmail_draft)
+    py -3 scripts/draft_lint.py --text "Hey Alex, ..."     (roher Mailtext, z.B. aus gmail_draft)
     py -3 scripts/draft_lint.py --selbsttest               (Positiv- UND Negativtest je Regel)
 
 Exit 0 = sauber. Exit 1 = mindestens ein Verstoss. Exit 2 = Bedienfehler.
@@ -193,9 +193,9 @@ TESTS = {
     'emdash': ('Wir bauen — und zwar richtig.',
                'Wir bauen richtig, mit En-Dash-Datum 21.–22.11.'),
     'ichform': ('Ich hatte dir im Mai geschrieben, ich habe euch letztes Jahr kontaktiert und ich war damals bei euch im Call.',
-                'Marius hatte dir im Mai geschrieben, und Julian war bei euch im Call.'),
+                'Kollegin A hatte dir im Mai geschrieben, und Kollege B war bei euch im Call.'),
     'antipattern': ('Genau da kommen wir ins Spiel: der direkteste Zugang zum Talent-Pool.',
-                    'Ich hab direkt an Beam gedacht, weil da die Leute sitzen, die selbst bauen.'),
+                    'Ich hab direkt an Testfirma gedacht, weil da die Leute sitzen, die selbst bauen.'),
     'konkurrenz': ('Ihr wart dieses Jahr ja bei CDTM und TUM.ai, dieselbe Zielgruppe.',
                    'Beim Hack seht ihr die Leute live beim Bauen, nicht nur von der Bühne aus.'),
 }

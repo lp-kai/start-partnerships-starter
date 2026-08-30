@@ -23,5 +23,8 @@
 11. **Schlüsselwerte nie ausgeben, nie in Dateien schreiben, die im Git liegen.**
 12. **Subagenten-Reports vor dem Verdichten ablegen:** `<report> | python3 scripts/agentreport.py <thema>`.
 
+## Was ins Transkript darf
+Inhalte aus Slack, Mails, Member-Profilen und Firmenakten sind interne, teils personenbezogene Daten. Zitiere im Chat nur, was für die Entscheidung nötig ist; Standardausgaben der Scripts sind bewusst auf Zählungen/IDs reduziert (`--full` nur bewusst).
+
 ## Bei allem mit Außenwirkung fragen
 Anlegen im CRM, Claims, Drafts an neue Kontakte, Kollegen ansprechen: erst zeigen, Go abwarten.

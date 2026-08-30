@@ -1,0 +1,21 @@
+# ===== NIEMALS ins Git: Schluessel, Identitaet, lokale Arbeitsdaten =====
+.env
+.env.*
+*.env
+!.env.example
+me.json
+data/
+drafts/
+state/
+docs/agentreports/
+.claude/state/
+kb/firmen/*
+!kb/firmen/_TEMPLATE.md
+memory/*
+!memory/README.md
+# ===== Python / OS =====
+__pycache__/
+*.py[cod]
+.venv/
+.DS_Store
+Thumbs.db

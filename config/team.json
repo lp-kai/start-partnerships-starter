@@ -1,0 +1,38 @@
+{
+  "schema_version": 1,
+  "org": "START Munich Partnerships",
+  "crm": {
+    "base_url": "https://espo.dedicated.startmunich.de/api/v1",
+    "team_partnerships_id": "680cfe93eeff592a7",
+    "campaigns": {
+      "RtSH27": "68fa3c04b1111b650",
+      "RtSS27": "69a307e02b05ddc27"
+    }
+  },
+  "imap": {
+    "host": "imap.gmail.com",
+    "port": 993
+  },
+  "members": {
+    "base_url": "https://my.startmunich.de",
+    "rate_limit_per_min": 30
+  },
+  "required_sources": [
+    "crm",
+    "imap",
+    "slack"
+  ],
+  "optional_sources": [
+    "members"
+  ],
+  "features": {
+    "crm_claim_enabled": false,
+    "claim_ttl_hours": 24
+  },
+  "limits": {
+    "http_timeout_s": 20,
+    "slack_max_hits": 20,
+    "imap_max_hits": 25,
+    "members_max_hits": 10
+  }
+}

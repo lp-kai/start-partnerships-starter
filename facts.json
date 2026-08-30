@@ -1,0 +1,99 @@
+{
+  "$comment": "Freigegebene Event-Fakten. Einzige Quelle fuer draft_lint.py. Aenderungen nur ueber den Fakten-Owner (siehe docs/FACTS_UPDATE.md). Deckt Event-Fakten und Stil-Tabus - NICHT alle START-Zahlen.",
+  "version": 3,
+  "stand": "2026-08-30",
+  "decision_owner": "partnerships-lead",
+  "rtsh": {
+    "datum_text": "21.–22.11.2026",
+    "dauer": "24 Stunden",
+    "teilnehmer": 250,
+    "ort": "TUM",
+    "monat": 11,
+    "erlaubte_tage": [
+      21,
+      22
+    ],
+    "falsche_dauer_muster": [
+      "zwei Tage",
+      "zwei Tagen",
+      "2 Tage",
+      "two days",
+      "two-day",
+      "zweitägig",
+      "48 Stunden",
+      "48h",
+      "48 h",
+      "two full days"
+    ]
+  },
+  "rtss": {
+    "datum": "07.12.2026",
+    "monat": 12,
+    "erlaubte_tage": [
+      7
+    ],
+    "gaeste_formulierung": "aktuell geplante 500 Gäste",
+    "gaeste_zahl": 500,
+    "gaeste_qualifizierer": [
+      "aktuell geplant",
+      "aktuell geplante",
+      "planen dort aktuell",
+      "rund",
+      "around",
+      "currently planning",
+      "~"
+    ],
+    "falsche_datums_muster": [
+      "09.12.2026",
+      "9. Dezember 2026",
+      "December 9",
+      "11.12.2026",
+      "December 11"
+    ],
+    "falsche_gaeste_muster": [
+      "350",
+      "300\\+",
+      "400"
+    ]
+  },
+  "preise": {
+    "$comment": "Nie in einer Erstmail. Pricing im Call.",
+    "rtss": {
+      "main_partner": 10000,
+      "presenting_partner": 6000,
+      "jury_member": 1000
+    },
+    "rtsh": {
+      "platinum": 25000,
+      "gold_challenge": 10000
+    }
+  },
+  "konkurrenzformate": [
+    "CDTM",
+    "TUM.ai",
+    "hackaTUM",
+    "Manage & More",
+    "Manage&More",
+    "UnternehmerTUM"
+  ],
+  "anti_patterns": [
+    "Genau da kommen wir ins Spiel",
+    "kommen wir ins Spiel",
+    "direkteste Zugang",
+    "direktesten Zugang",
+    "perfekter Talent-Pool",
+    "Sehr geehrte Damen und Herren",
+    "Ich schreibe im Namen von",
+    "powered by",
+    "Founding Partner",
+    "Aftermovie"
+  ],
+  "superlativ_tabus": [
+    "größte Hackathon",
+    "größter Hackathon",
+    "biggest hackathon",
+    "größte student",
+    "18K",
+    "30K Instagram"
+  ]
+}

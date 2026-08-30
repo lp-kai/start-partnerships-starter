@@ -1,0 +1,79 @@
+{
+  "$comment": "Guards for this repo. Effective only when Claude Code starts IN this folder. All hooks fail open; they run through an OS-neutral Python runner (node).",
+  "autoMemoryDirectory": "memory",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/run_python.cjs\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/secret_leak_guard.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/run_python.cjs\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/send_guard.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/run_python.cjs\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/crm_write_guard.py\""
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/run_python.cjs\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/draft_file_lint.py\""
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/run_python.cjs\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/raw_report_gate.py\" subagent"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/run_python.cjs\" \"$CLAUDE_PROJECT_DIR/.claude/hooks/raw_report_gate.py\" stop"
+          }
+        ]
+      }
+    ],
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/run_python.cjs\" \"$CLAUDE_PROJECT_DIR/scripts/health_check.py\" --quiet || true"
+          }
+        ]
+      }
+    ]
+  }
+}

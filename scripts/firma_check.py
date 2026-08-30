@@ -13,6 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 ROOT = Path(__file__).resolve().parent.parent
 from _cli import run, preflight, die
+from _claims import is_mine, is_active, MARKER
 
 NOW = datetime.datetime.now().astimezone()
 STAMP = NOW.strftime('%d.%m.%Y %H:%M')
@@ -126,14 +127,12 @@ def classify(out, ME):
         if st not in CLOSED_STAGES: return 'ABSTIMMEN', f'opportunity "{o.get("name")}" in unknown stage "{st}" - treat as open until checked'
     for s in rows('crm.stream'):
         p = s.get('post') or ''
-        if '[PARTNERSHIPS-CLAIM]' in p and (s.get('at') or '') >= (NOW - datetime.timedelta(hours=48)).strftime('%Y-%m-%d'):
-            owner = (re.search(r'owner=([^\s]+(?:\s+[^\s=]+)*?)(?=\s+\w+=|$)', p) or [None, ''])[1].strip().lower()
-            api = (re.search(r'api=(\S+)', p) or [None, ''])[1].strip()
-            if not (owner and owner == me_name) and not (api and me_api and api == me_api):
-                return 'STOP', f'active claim by someone else: {p[:80]}'
+        if MARKER in p and is_active(s.get('at'), 48, NOW) and not is_mine(p, me_name, me_api):
+            return 'STOP', f'active claim by someone else: {p[:80]}'
     for t in rows('crm.tasks'):
         if other(t) and t.get('status') not in ('Completed', 'Canceled'): return 'STOP', f'open task by {t.get("assignedUserName")}: {t.get("name")}'
     for m in rows('crm.meetings') + rows('crm.opp_meetings'):
+        if m.get('status') in ('Canceled', 'Not Held'): continue
         if other(m) and (m.get('dateStart') or '9999') >= SIX_MONTHS: return 'STOP', f'meeting by {m.get("assignedUserName")}: {m.get("name")}' + ('' if m.get('dateStart') else ' (no date - treated as recent)')
     # ABSTIMMEN: foreign owner, foreign lead, recent foreign stream activity, any incomplete source
     for a in rows('crm.account'):

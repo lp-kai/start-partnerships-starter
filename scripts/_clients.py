@@ -34,8 +34,10 @@ def _retry_after(h):
 def _get_json(url, headers, source, method, retries=3):
     start = time.time()
     for attempt in range(retries):
+        left = DEADLINE - (time.time() - start)
+        if left <= 0: raise SourceError(source, method, 'deadline exceeded')
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=TO) as r:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=min(TO, left)) as r:
                 raw = r.read().decode('utf-8', errors='replace')
             try:
                 return json.loads(raw)
@@ -149,7 +151,7 @@ class IMAP:
         for i in ids[-limit:]:
             typ, msg = self.m.fetch(i, '(BODY.PEEK[HEADER.FIELDS (DATE FROM TO SUBJECT)])')
             if typ != 'OK' or not msg or not msg[0]:
-                rows.append({'date': '', 'from': '', 'to': '', 'subject': '<header fetch failed>'}); continue
+                raise SourceError('imap', f'FETCH headers in {box}', typ or 'empty response')
             hdr = email.message_from_bytes(msg[0][1])
             rows.append({k.lower(): str(email.header.make_header(email.header.decode_header(hdr.get(k, '')))) for k in ('Date', 'From', 'To', 'Subject')})
         return len(ids), rows, len(ids) > limit

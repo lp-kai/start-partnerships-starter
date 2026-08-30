@@ -42,9 +42,9 @@ def _get_json(url, headers, source, method, retries=3):
             except ValueError:
                 raise SourceError(source, method, 'invalid JSON response')
         except urllib.error.HTTPError as e:
-            retryable = e.code == 429 or e.code in (502, 503, 504)
+            retryable = e.code == 429 or 500 <= e.code < 600
             if retryable and attempt < retries - 1 and time.time() - start < DEADLINE:
-                time.sleep(_retry_after(e.headers) + random.uniform(0, 1.5)); continue
+                time.sleep(min(_retry_after(e.headers) + random.uniform(0, 1.5), max(0.0, DEADLINE - (time.time() - start)))); continue
             raise SourceError(source, method, f'HTTP {e.code}')
         except (urllib.error.URLError, socket.timeout, ConnectionError) as e:
             if attempt < retries - 1 and time.time() - start < DEADLINE:
@@ -134,13 +134,22 @@ class IMAP:
         q = imap_quote(term)
         try:
             typ, data = self.m.search('UTF-8', 'OR', 'FROM', q, 'TO', q)
-        except (imaplib.IMAP4.error, UnicodeEncodeError):
-            typ, data = self.m.search(None, 'OR', 'FROM', q.encode('ascii', 'ignore').decode(), 'TO', q.encode('ascii', 'ignore').decode())
-        ids = data[0].split() if typ == 'OK' else []
+        except (imaplib.IMAP4.error, UnicodeEncodeError) as e:
+            ascii_term = term.encode('ascii', 'ignore').decode()
+            if not ascii_term.strip():
+                raise SourceError('imap', f'SEARCH "{term}"', 'server rejected non-ASCII search and no ASCII fallback exists')
+            try:
+                typ, data = self.m.search(None, 'OR', 'FROM', imap_quote(ascii_term), 'TO', imap_quote(ascii_term))
+            except imaplib.IMAP4.error as e2:
+                raise SourceError('imap', f'SEARCH "{term}"', f'rejected: {e2}')
+        if typ != 'OK':
+            raise SourceError('imap', f'SEARCH "{term}" in {box}', typ)
+        ids = data[0].split()
         rows = []
         for i in ids[-limit:]:
             typ, msg = self.m.fetch(i, '(BODY.PEEK[HEADER.FIELDS (DATE FROM TO SUBJECT)])')
-            if typ != 'OK' or not msg or not msg[0]: continue
+            if typ != 'OK' or not msg or not msg[0]:
+                rows.append({'date': '', 'from': '', 'to': '', 'subject': '<header fetch failed>'}); continue
             hdr = email.message_from_bytes(msg[0][1])
             rows.append({k.lower(): str(email.header.make_header(email.header.decode_header(hdr.get(k, '')))) for k in ('Date', 'From', 'To', 'Subject')})
         return len(ids), rows, len(ids) > limit
@@ -162,7 +171,7 @@ class Slack:
 
     def auth(self): return self.call('auth.test')
 
-    def search(self, query, max_hits):
+    def search(self, query, max_hits):   # returns (total, rows, truncated); total is per query
         """Pages search.messages up to max_hits; returns (total, rows, truncated)."""
         rows, page, total = [], 1, 0
         while len(rows) < max_hits:

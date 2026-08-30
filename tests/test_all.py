@@ -111,4 +111,20 @@ check('imap quote escapes', cl.imap_quote('a"b\\c') == '"a\\"b\\\\c"')
 r = subprocess.run([sys.executable, str(ROOT / 'scripts' / 'agentreport.py'), 't'], input='SLACK_TOKEN=' + 'xoxp-' + '1234567890-abcdefghijk', capture_output=True, text=True)
 check('agentreport refuses secrets', r.returncode != 0)
 
+
+
+# ---- round 2 regressions ----
+check('r2 classify: unknown stage -> ABSTIMMEN', fc.classify(mk([('crm.opportunities', [{'name':'o','stage':'Contracting'}], None, False)]), ME)[0] == 'ABSTIMMEN')
+check('r2 classify: empty stage -> ABSTIMMEN', fc.classify(mk([('crm.opportunities', [{'name':'o','stage':''}], None, False)]), ME)[0] == 'ABSTIMMEN')
+check('r2 classify: meeting without date -> STOP', fc.classify(mk([('crm.meetings', [{'name':'m','assignedUserName':'Other'}], None, False)]), ME)[0] == 'STOP')
+check('r2 classify: foreign claim containing my name -> STOP', fc.classify(mk([('crm.stream', [{'type':'Post','by':'Other','at':fc.NOW.strftime('%Y-%m-%d'),'post':'[PARTNERSHIPS-CLAIM] owner=other person note: replaces me person'}], None, False)]), ME)[0] == 'STOP')
+check('r2 classify: own claim still fine', fc.classify(mk([('crm.stream', [{'type':'Post','by':'me person','at':fc.NOW.strftime('%Y-%m-%d'),'post':'[PARTNERSHIPS-CLAIM] owner=me person api=apime'}], None, False)]), ME)[0] != 'STOP')
+check('r2 send: blocks openssl smtp', hook('send_guard.py', B('openssl s_client -connect smtp.gmail.com:465')) == 2)
+check('r2 send: blocks gmail api send', hook('send_guard.py', B('curl https://gmail.googleapis.com/gmail/v1/users/me/messages/send -d @m.json')) == 2)
+check('r2 send: blocks lookalike script', hook('send_guard.py', B('python3 scripts/gmail_draft.py.evil -c "import smtplib"')) == 2)
+check('r2 secret: blocks printf key', hook('secret_leak_guard.py', B('printf "$' + KEY + '"')) == 2)
+check('r2 crm: blocks curl --json', hook('crm_write_guard.py', B('curl --json @x.json https://espo.dedicated.startmunich.de/api/v1/Note')) == 2)
+check('r2 crm: blocks lookalike script', hook('crm_write_guard.py', B('python3 scripts/crm_claim.py.evil; curl -X DELETE https://espo.dedicated.startmunich.de/api/v1/Account/1')) == 2)
+check('r2 crm: blocks split across newlines', hook('crm_write_guard.py', B('URL=https://espo.dedicated.startmunich.de/api/v1/Account/1\ncurl -X DELETE $URL')) == 2)
 print(f'\n{fails} failures'); sys.exit(1 if fails else 0)
+

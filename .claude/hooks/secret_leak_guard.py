@@ -14,11 +14,11 @@ def check_segment(seg):
     if not seg: return None
     if re.search(r'\b(cat|less|more|head|tail|bat|type|Get-Content|strings|xxd|od|nl|sed|awk|grep|rg|cut|paste|tee)\b', seg) and re.search(ENV, seg):
         return 'SECRET GUARD: do not read .env in a command. Check names/lengths only (e.g. grep -c "=" is fine via scripts, not here).'
-    if re.search(r'(^|[\s;&|])(source|\.)\s+\S*\.env\b', seg) or re.search(r'\bexport\b.*\.env', seg) or re.search(r'\benv\b\s*$', seg) or re.search(r'\bprintenv\b', seg):
+    if re.search(r'(^|[\s;&|])(source|\.)\s+\S*\.env\b', seg) or re.search(r'\bexport\b.*\.env', seg) or re.search(r'\benv\b\s*($|>)', seg) or re.search(r'\bprintenv\b', seg) or re.search(r'\bset\b\s*($|\|)', seg):
         return 'SECRET GUARD: sourcing .env or dumping the environment prints keys.'
     if re.search(r'(set|bash|sh)\s+-x', seg) and re.search(r'\.env|_creds', seg):
         return 'SECRET GUARD: shell trace on a file holding keys would print them.'
-    if re.search(r'\becho\b.*\$\{?' + KEYS, seg) or re.search(r'\$\{' + KEYS + r':[-+]', seg) or re.search(r'\$\{' + KEYS + r'\}', seg):
+    if re.search(r'\b(echo|printf|print|write-host|Write-Output)\b.*\$\{?' + KEYS, seg, re.I) or re.search(r'\$\{' + KEYS + r':[-+]', seg) or re.search(r'\$\{' + KEYS + r'\}', seg):
         return 'SECRET GUARD: expanding a key variable prints its value. Use [ -n "${VAR:-}" ] or ${#VAR}.'
     if re.search(r'(open|read_text|Path)\s*\(\s*["\'][^"\']*\.env["\']', seg) and 'example' not in seg:
         return 'SECRET GUARD: reading .env from inline code prints or leaks keys. Use scripts/_creds.py.'

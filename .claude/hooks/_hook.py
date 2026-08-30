@@ -6,8 +6,12 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def read():
-    try: return json.loads(sys.stdin.read() or '{}')
-    except Exception: return {}
+    raw = sys.stdin.read()
+    if not raw.strip(): return {}
+    try: return json.loads(raw)
+    except Exception:
+        # malformed payload: treat the raw text as the command so guards still inspect it
+        return {'tool_name': 'Bash', 'tool_input': {'command': raw}, '_malformed': True}
 
 
 def command(d): return ((d.get('tool_input') or {}).get('command') or '') if d.get('tool_name') == 'Bash' else ''

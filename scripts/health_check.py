@@ -69,10 +69,13 @@ def main():
     rep('PASS' if r.returncode == 0 else 'FAIL', 'draft lint', r.stdout.strip().splitlines()[-1] if r.stdout else 'no output')
     missing = [h for h in ('secret_leak_guard.py', 'send_guard.py', 'crm_write_guard.py', 'draft_file_lint.py', 'raw_report_gate.py', 'run_python.cjs') if not (ROOT / '.claude' / 'hooks' / h).exists()]
     rep('PASS' if not missing else 'FAIL', 'hooks files', 'all present' if not missing else f'missing {missing}')
-    p1 = probe_hook('send_guard.py', {'tool_name': 'Bash', 'tool_input': {'command': 'python3 -c "import smtplib"'}}, 2)
-    p2 = probe_hook('send_guard.py', {'tool_name': 'Bash', 'tool_input': {'command': 'git status'}}, 0)
-    if p1 is None: rep('FAIL', 'hooks runtime', 'node missing - Claude Code guards will NOT run. Install node.')
-    else: rep('PASS' if (p1 and p2) else 'FAIL', 'hooks runtime', 'send guard blocks SMTP and allows git status' if (p1 and p2) else 'guard probe gave unexpected result')
+    probes = [('send_guard.py', 'python3 -c "import smtplib"', 2), ('send_guard.py', 'git status', 0),
+              ('secret_leak_guard.py', 'cat .env', 2), ('secret_leak_guard.py', 'cat README.md', 0),
+              ('crm_write_guard.py', 'curl -X DELETE https://espo.example/api/v1/Account/1 -H "X-Api-Key: x"', 2),
+              ('crm_write_guard.py', 'curl https://espo.example/api/v1/Account -H "X-Api-Key: x"', 0)]
+    res = [probe_hook(h, {'tool_name': 'Bash', 'tool_input': {'command': c}}, e) for h, c, e in probes]
+    if any(r is None for r in res): rep('FAIL', 'hooks runtime', 'node missing - Claude Code guards will NOT run. Install node.')
+    else: rep('PASS' if all(res) else 'FAIL', 'hooks runtime', f'{sum(1 for r in res if r)}/{len(res)} guard probes correct' + ('' if all(res) else ' - a guard is not working'))
     pc = ROOT / '.git' / 'hooks' / 'pre-commit'
     rep('PASS' if pc.exists() else 'FAIL', 'pre-commit', 'repo_guard installed' if pc.exists() else f'not installed - run {PY} setup.py')
     return finish(req)

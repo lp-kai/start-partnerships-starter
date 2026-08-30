@@ -5,7 +5,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent)); from _hook import read, command, block, run_closed
 
 EXEC = r'(?<![\w.])(python[0-9.]*|py|node|perl|ruby|php)\b|\b(sh|bash|zsh)\s+-c\b|<<|^\s*\./'
-EXEMPT = re.compile(r'^\s*(python[0-9.]*|py(\s+-3)?)\s+(\S*/)?scripts/gmail_draft\.py\b')
+EXEMPT = re.compile(r'^\s*(python[0-9.]*|py(\s+-3)?)\s+(\S*/)?scripts/gmail_draft\.py(\s|$)')
 
 
 def main():
@@ -17,7 +17,9 @@ def main():
     for seg in re.split(r'[;&|]+|\n', cmd):
         s = seg.strip()
         if not s or EXEMPT.match(s): continue
-        if re.search(r'\bcurl\b.*\bsmtps?://', s, re.I) or re.search(r'\b(sendmail|mailx?|mutt|swaks|msmtp)\b', s):
+        if re.search(r'\b(curl|openssl|nc|ncat|telnet)\b.*\b(smtps?://|smtp\.|:(25|465|587)\b)', s, re.I) or re.search(r'\b(sendmail|mailx?|mutt|swaks|msmtp)\b', s):
+            return block('SEND GUARD: mail transport command. Rule 1: never send. Drafts only, via scripts/gmail_draft.py.')
+        if re.search(r'gmail\.googleapis\.com|/messages/send|users\.messages\.send', s, re.I):
             return block('SEND GUARD: mail transport command. Rule 1: never send. Drafts only, via scripts/gmail_draft.py.')
         if re.search(EXEC, s) and re.search(r'smtplib|SMTP\s*\(|\.sendmail\(|send_message\(|nodemailer|smtp\.', s, re.I):
             return block('SEND GUARD: SMTP in executable code. Rule 1: never send. Drafts only, via scripts/gmail_draft.py.')

@@ -14,7 +14,8 @@ T, ME = team(), me()
 if not T['features']['crm_claim_enabled']:
     sys.exit('Claims are disabled in config/team.json until the CRM admin approves the note-only role. Nothing written.')
 c = CRM(); acc = c.get(f'/Account/{a.account_id}', select='name')
-recent = [s for s in c.stream('Account', a.account_id) if '[PARTNERSHIPS-CLAIM]' in (s.get('post') or '')]
+stream_rows, _tr = c.stream('Account', a.account_id)
+recent = [s for s in stream_rows if '[PARTNERSHIPS-CLAIM]' in (s.get('post') or '')]
 for s in recent:
     if ME['crm']['owner_user_name'] not in (s.get('post') or '') and (s.get('createdAt') or '') > (datetime.datetime.utcnow() - datetime.timedelta(hours=T['features']['claim_ttl_hours'])).isoformat():
         sys.exit(f'STOP: active claim by someone else on {acc["name"]}: {s["post"][:120]}')

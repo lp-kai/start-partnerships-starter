@@ -18,6 +18,7 @@ NOW = datetime.datetime.now().astimezone()
 STAMP = NOW.strftime('%d.%m.%Y %H:%M')
 SIX_MONTHS = (NOW - datetime.timedelta(days=182)).strftime('%Y-%m-%d')
 OPEN_STAGES = {'Prospecting', 'Qualification', 'Proposal', 'Negotiation'}
+CLOSED_STAGES = {'Closed Won', 'Closed Lost'}   # anything else counts as open/unknown
 
 
 def slug(s):
@@ -41,12 +42,14 @@ def check(name, domain):
     try:
         c = CRM()
         SEL_ACC = 'id,name,assignedUserId,assignedUserName,modifiedAt'
-        exact, _ = c.list('Account', [{'type': 'equals', 'attribute': 'name', 'value': name}], select=SEL_ACC, max_total=50)
+        exact, e_tr = c.list('Account', [{'type': 'equals', 'attribute': 'name', 'value': name}], select=SEL_ACC, max_total=50)
         text, t_tr = c.list('Account', select=SEL_ACC, textFilter=name, max_total=50)
         seen, accs = set(), []
         for a in exact + text:
             if a['id'] not in seen: seen.add(a['id']); accs.append(a)
-        B.append(block('crm.account', f'GET /Account name="{name}" UNION textFilter', len(accs), accs, truncated=t_tr))
+        B.append(block('crm.account', f'GET /Account name="{name}" UNION textFilter', len(accs), accs, truncated=t_tr or e_tr))
+        if len(accs) > 5:
+            B.append(block('crm.account.deep', f'only the first 5 of {len(accs)} accounts were examined in depth', len(accs), [], truncated=True))
         for a in accs[:5]:
             aid = a['id']
             for link, sel in (('contacts', 'id,name,assignedUserName,modifiedAt'),
@@ -63,7 +66,8 @@ def check(name, domain):
                 try:
                     rows, tr = c.related('Opportunity', o['id'], 'meetings', select='id,name,dateStart,status,assignedUserName')
                     if rows: B.append(block('crm.opp_meetings', f'GET /Opportunity/{o["id"]}/meetings', len(rows), rows, truncated=tr))
-                except SourceError: pass
+                except SourceError as e:
+                    B.append(block('crm.opp_meetings', f'GET /Opportunity/{o["id"]}/meetings', 0, [], error=str(e)))
             try:
                 st, tr = c.stream('Account', aid)
                 B.append(block('crm.stream', f'GET /Account/{aid}/stream', len(st), [{'type': s.get('type'), 'by': s.get('createdByName'), 'at': s.get('createdAt'), 'post': (s.get('post') or '')[:200]} for s in st], truncated=tr))
@@ -116,17 +120,21 @@ def classify(out, ME):
     truncated = [b['source'] for b in out['blocks'] if b.get('truncated')]
     # STOP: open deal, or a foreign active claim, or another person's open task/meeting
     for o in rows('crm.opportunities'):
-        st = o.get('stage')
-        if st is None: return 'ABSTIMMEN', 'opportunity without stage field - incomplete data'
+        st = (o.get('stage') or '').strip()
+        if not st: return 'ABSTIMMEN', f'opportunity "{o.get("name")}" without a stage - incomplete data'
         if st in OPEN_STAGES: return 'STOP', f'open opportunity "{o.get("name")}" ({st})'
+        if st not in CLOSED_STAGES: return 'ABSTIMMEN', f'opportunity "{o.get("name")}" in unknown stage "{st}" - treat as open until checked'
     for s in rows('crm.stream'):
         p = s.get('post') or ''
-        if '[PARTNERSHIPS-CLAIM]' in p and me_name not in p.lower() and (me_api or '') not in p and (s.get('at') or '') >= (NOW - datetime.timedelta(hours=48)).strftime('%Y-%m-%d'):
-            return 'STOP', f'active claim by someone else: {p[:80]}'
+        if '[PARTNERSHIPS-CLAIM]' in p and (s.get('at') or '') >= (NOW - datetime.timedelta(hours=48)).strftime('%Y-%m-%d'):
+            owner = (re.search(r'owner=([^\s]+(?:\s+[^\s=]+)*?)(?=\s+\w+=|$)', p) or [None, ''])[1].strip().lower()
+            api = (re.search(r'api=(\S+)', p) or [None, ''])[1].strip()
+            if not (owner and owner == me_name) and not (api and me_api and api == me_api):
+                return 'STOP', f'active claim by someone else: {p[:80]}'
     for t in rows('crm.tasks'):
         if other(t) and t.get('status') not in ('Completed', 'Canceled'): return 'STOP', f'open task by {t.get("assignedUserName")}: {t.get("name")}'
     for m in rows('crm.meetings') + rows('crm.opp_meetings'):
-        if other(m) and (m.get('dateStart') or '') >= SIX_MONTHS: return 'STOP', f'recent meeting by {m.get("assignedUserName")}: {m.get("name")}'
+        if other(m) and (m.get('dateStart') or '9999') >= SIX_MONTHS: return 'STOP', f'meeting by {m.get("assignedUserName")}: {m.get("name")}' + ('' if m.get('dateStart') else ' (no date - treated as recent)')
     # ABSTIMMEN: foreign owner, foreign lead, recent foreign stream activity, any incomplete source
     for a in rows('crm.account'):
         if other(a): return 'ABSTIMMEN', f'account owned by {a.get("assignedUserName")}' + (' (activity in last 6 months)' if (a.get('modifiedAt') or '') >= SIX_MONTHS else '')

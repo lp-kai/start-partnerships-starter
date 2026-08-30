@@ -33,6 +33,7 @@ Regeln, die als Werkzeuge gebaut sind, nicht als Bitte.
 | `scripts/draft_lint.py drafts/x.md` | Draft gegen Event-Fakten und Stil-Tabus prüfen |
 | `scripts/gmail_draft.py --to … --subject … --body-file …` | Draft in DEIN Gmail legen (nach bestandenem Lint). Senden tust du |
 | `scripts/health_check.py` | Alle Datenwege unter deiner Identität prüfen |
+| `scripts/hub_build.py` | Deine Akten als lokale Hub-Seite (`data/hub.html`), sortiert nach Konfliktstatus |
 
 Der Ablauf einer Kampagne: `docs/WORKFLOW.md`. Checklisten pro Schritt: `rules/CHECKLISTEN.md`.
 
